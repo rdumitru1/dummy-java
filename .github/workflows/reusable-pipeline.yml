@@ -19,7 +19,7 @@ on:
         required: true
         description: "OIDC Role ARN din Terraform"
 
-# IMPORTANT: Permisiunile sunt acum GLOBALE pentru tot fișierul!
+# IMPORTANT: Permisiunile sunt GLOBALE pentru tot fișierul!
 permissions:
   id-token: write
   contents: read
@@ -66,15 +66,20 @@ jobs:
           load: true
           tags: java-dummy-app:temp-scan
 
+      # INSTALAREA EXPLICITĂ A BINARULUI (Versiunea fixată și sigură v0.2.6)
+      - name: Install Trivy
+        uses: aquasecurity/setup-trivy@v0.2.6
+
+      # SCANAREA PROPRIU-ZISĂ (Folosind binarul instalat anterior)
       - name: Run Trivy vulnerability scanner
-        uses: aquasecurity/trivy-action@v0.28.0
-        with:
-          image-ref: 'java-dummy-app:temp-scan'
-          format: 'table'
-          exit-code: '1' # <--- OPREȘTE pipeline-ul (exit 1) dacă găsește vulnerabilități de tipul specificat mai jos
-          ignore-unfixed: true # Ignoră vulnerabilitățile pentru care nu există încă un patch oficial (ca să nu blochezi pipeline-ul aiurea)
-          vuln-type: 'os,library'
-          severity: 'CRITICAL,HIGH' # Te avertizează/blochează doar la chestiile cu adevărat grave
+        run: |
+          trivy image \
+            --format table \
+            --exit-code 1 \
+            --ignore-unfixed \
+            --vuln-type os,library \
+            --severity CRITICAL,HIGH \
+            java-dummy-app:temp-scan
 
       - name: Build and Push Docker Image to ECR
         uses: docker/build-push-action@v5
