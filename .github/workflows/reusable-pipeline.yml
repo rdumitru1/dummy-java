@@ -19,13 +19,14 @@ on:
         required: true
         description: "OIDC Role ARN din Terraform"
 
-permissions:
-  id-token: write # CRITICAL pentru OIDC
-  contents: read
-
 jobs:
   test-and-build:
     runs-on: ubuntu-latest
+
+    permissions:
+      id-token: write # CRITICAL pentru OIDC
+      contents: read
+
     steps:
       - name: Checkout Code
         uses: actions/checkout@v4
@@ -50,12 +51,10 @@ jobs:
 
       # Conectare la AWS folosind OIDC (fără credențiale statice în Github secrets!)
       - name: Configure AWS Credentials (OIDC)
-        uses: aws-actions/configure-aws-credentials@v4
+        uses: aws-actions/configure-aws-credentials@6.1.0
         with:
           role-to-assume: ${{ secrets.AWS_ROLE_ARN }}
           aws-region: ${{ inputs.aws_region }}
-          audience: sts.amazonaws.com
-          aws-sts-regional-endpoints: 'global'
 
       - name: Log in to Amazon ECR
         id: login-ecr
