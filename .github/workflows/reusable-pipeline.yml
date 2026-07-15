@@ -22,11 +22,6 @@ on:
 jobs:
   test-and-build:
     runs-on: ubuntu-latest
-
-    permissions:
-      id-token: write # CRITICAL pentru OIDC
-      contents: read
-
     steps:
       - name: Checkout Code
         uses: actions/checkout@v4
@@ -38,23 +33,26 @@ jobs:
           distribution: 'temurin'
           cache: 'maven'
 
-      # RULAREA UNIT TESTELOR DIRECT PE RUNNER
       - name: Run Unit Tests with Maven
         run: mvn clean package -DskipTests=false
 
   docker-build-push:
     needs: test-and-build
     runs-on: ubuntu-latest
+    # ESENȚIAL: Permisiunile trebuie să fie pe jobul care folosește OIDC
+    permissions:
+      id-token: write
+      contents: read
     steps:
       - name: Checkout Code
         uses: actions/checkout@v4
 
-      # Conectare la AWS folosind OIDC (fără credențiale statice în Github secrets!)
       - name: Configure AWS Credentials (OIDC)
-        uses: aws-actions/configure-aws-credentials@v6.1.0
+        uses: aws-actions/configure-aws-credentials@v4 # Schimbat din v6.1.0 în v4 stabil
         with:
           role-to-assume: ${{ secrets.AWS_ROLE_ARN }}
           aws-region: ${{ inputs.aws_region }}
+          audience: sts.amazonaws.com
 
       - name: Log in to Amazon ECR
         id: login-ecr
@@ -72,6 +70,10 @@ jobs:
   deploy-helm:
     needs: docker-build-push
     runs-on: ubuntu-latest
+    # ESENȚIAL: Permisiunile trebuie să fie pe jobul care folosește OIDC
+    permissions:
+      id-token: write
+      contents: read
     steps:
       - name: Checkout Code
         uses: actions/checkout@v4
@@ -83,24 +85,19 @@ jobs:
           aws-region: ${{ inputs.aws_region }}
           audience: sts.amazonaws.com
 
-      # Configurăm Kubeconfig pentru EKS local pe runner
       - name: Update Kubeconfig
         run: |
           aws eks update-kubeconfig --name dev-java-eks --region ${{ inputs.aws_region }}
 
-      # Instalăm Helm pe runner
       - name: Set up Helm
         uses: azure/setup-helm@v4
         with:
           version: 'v3.12.0'
 
-      # Deploy în Kubernetes cu Helm
       - name: Deploy with Helm
         run: |
-          # Ne asigurăm că namespace-ul unde rulează Fargate există
           kubectl create namespace java-app-dev --dry-run=client -o yaml | kubectl apply -f -
 
-          # Luăm URL-ul de ECR dinamic bazat pe login
           REGISTRY="481665089964.dkr.ecr.eu-west-1.amazonaws.com"
 
           helm upgrade --install java-app-release ./helm/java-app \

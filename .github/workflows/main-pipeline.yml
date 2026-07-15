@@ -16,8 +16,9 @@ on:
           - staging
           - production
 
+# Forțăm drepturi de scriere globale pentru generarea JWT-ului OIDC
 permissions:
-  id-token: write # Necesar pentru transmiterea permisiunilor OIDC către reusable pipeline
+  id-token: write
   contents: read
 
 jobs:
@@ -33,16 +34,13 @@ jobs:
       - name: Decide Target Environment
         id: decide
         run: |
-          # Tag-ul de imagine va fi SHA-ul unic al commit-ului
           echo "img_tag=${{ github.sha }}" >> $GITHUB_OUTPUT
 
-          # Cazul 1: Rulare manuală (workflow_dispatch)
           if [ "${{ github.event_name }}" == "workflow_dispatch" ]; then
             echo "env=${{ github.event.inputs.target_env }}" >> $GITHUB_OUTPUT
             exit 0
           fi
 
-          # Cazul 2: Luăm mesajul de commit sau titlul PR-ului
           MSG=""
           if [ "${{ github.event_name }}" == "pull_request" ]; then
             MSG="${{ github.event.pull_request.title }}"
@@ -52,13 +50,11 @@ jobs:
 
           echo "Commit or PR Message detected: $MSG"
 
-          # Analiză mesaj commit
           if [[ "$MSG" == *"[prod]"* ]]; then
             echo "env=production" >> $GITHUB_OUTPUT
           elif [[ "$MSG" == *"[staging]"* ]]; then
             echo "env=staging" >> $GITHUB_OUTPUT
           else
-            # Default fallback bazat pe branch/PR
             if [ "${{ github.event_name }}" == "pull_request" ]; then
               echo "env=staging" >> $GITHUB_OUTPUT
             else
@@ -73,14 +69,15 @@ jobs:
           echo "Image Tag (Git SHA): ${{ steps.decide.outputs.img_tag }}"
           echo "========================================="
 
-  # Apelarea efectivă a pipeline-ului reutilizabil
   trigger-reusable-deployment:
     needs: determine-environment
+    permissions:
+      id-token: write # Permitem transmiterea token-ului OIDC către reusable
+      contents: read
     uses: ./.github/workflows/reusable-pipeline.yml
     with:
       environment: ${{ needs.determine-environment.outputs.env }}
       image_tag: ${{ needs.determine-environment.outputs.img_tag }}
       aws_region: "eu-west-1"
     secrets:
-      # PUI AICI ARN-UL ROLULUI OIDC din output-ul Terraform-ului de EKS!
       AWS_ROLE_ARN: "arn:aws:iam::481665089964:role/dev-java-eks-github-actions-oidc"
