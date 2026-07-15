@@ -1,0 +1,18 @@
+replicaCount: 1
+
+image:
+  repository: 481665089964.dkr.ecr.eu-west-1.amazonaws.com/java-dummy-app # ÎNLOCUIEȘTE cu URL-ul tău real de ECR generat de Terraform
+  tag: "latest"
+  pullPolicy: IfNotPresent
+
+service:
+  type: ClusterIP
+  port: 80
+
+resources:
+  limits:
+    cpu: 500m
+    memory: 512Mi
+  requests:
+    cpu: 250m
+    memory: 256Mi
