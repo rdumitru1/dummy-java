@@ -20,6 +20,7 @@
         <java.version>17</java.version>
         <tomcat.version>10.1.55</tomcat.version>
         <jackson.version>2.18.8</jackson.version>
+        <spring-framework.version>6.1.22</spring-framework.version>
     </properties>
 
     <dependencies>
