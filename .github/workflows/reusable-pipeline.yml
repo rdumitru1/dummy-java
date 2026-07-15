@@ -51,7 +51,7 @@ jobs:
 
       # Conectare la AWS folosind OIDC (fără credențiale statice în Github secrets!)
       - name: Configure AWS Credentials (OIDC)
-        uses: aws-actions/configure-aws-credentials@6.1.0
+        uses: aws-actions/configure-aws-credentials@v6.1.0
         with:
           role-to-assume: ${{ secrets.AWS_ROLE_ARN }}
           aws-region: ${{ inputs.aws_region }}
