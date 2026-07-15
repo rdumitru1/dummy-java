@@ -19,6 +19,11 @@ on:
         required: true
         description: "OIDC Role ARN din Terraform"
 
+# IMPORTANT: Permisiunile sunt acum GLOBALE pentru tot fișierul!
+permissions:
+  id-token: write
+  contents: read
+
 jobs:
   test-and-build:
     runs-on: ubuntu-latest
@@ -39,16 +44,12 @@ jobs:
   docker-build-push:
     needs: test-and-build
     runs-on: ubuntu-latest
-    # ESENȚIAL: Permisiunile trebuie să fie pe jobul care folosește OIDC
-    permissions:
-      id-token: write
-      contents: read
     steps:
       - name: Checkout Code
         uses: actions/checkout@v4
 
       - name: Configure AWS Credentials (OIDC)
-        uses: aws-actions/configure-aws-credentials@v4 # Schimbat din v6.1.0 în v4 stabil
+        uses: aws-actions/configure-aws-credentials@v4
         with:
           role-to-assume: ${{ secrets.AWS_ROLE_ARN }}
           aws-region: ${{ inputs.aws_region }}
@@ -58,7 +59,24 @@ jobs:
         id: login-ecr
         uses: aws-actions/amazon-ecr-login@v2
 
-      - name: Build and Push Docker Image
+      - name: Build Docker Image Locally
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          load: true
+          tags: java-dummy-app:temp-scan
+
+      - name: Run Trivy vulnerability scanner
+        uses: aquasecurity/trivy-action@0.28.0
+        with:
+          image-ref: 'java-dummy-app:temp-scan'
+          format: 'table'
+          exit-code: '1' # <--- OPREȘTE pipeline-ul (exit 1) dacă găsește vulnerabilități de tipul specificat mai jos
+          ignore-unfixed: true # Ignoră vulnerabilitățile pentru care nu există încă un patch oficial (ca să nu blochezi pipeline-ul aiurea)
+          vuln-type: 'os,library'
+          severity: 'CRITICAL,HIGH' # Te avertizează/blochează doar la chestiile cu adevărat grave
+
+      - name: Build and Push Docker Image to ECR
         uses: docker/build-push-action@v5
         with:
           context: .
@@ -70,10 +88,6 @@ jobs:
   deploy-helm:
     needs: docker-build-push
     runs-on: ubuntu-latest
-    # ESENȚIAL: Permisiunile trebuie să fie pe jobul care folosește OIDC
-    permissions:
-      id-token: write
-      contents: read
     steps:
       - name: Checkout Code
         uses: actions/checkout@v4
