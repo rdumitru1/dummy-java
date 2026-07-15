@@ -11,7 +11,8 @@ public class HelloController {
     @GetMapping("/api/hello")
     public Map<String, String> sayHello() {
         Map<String, String> response = new HashMap<>();
-        response.setStatus("status", "UP");
+        // CORECTAT: Schimbat setStatus cu put
+        response.put("status", "UP");
         response.put("message", "Hello from EKS Fargate! Your pipeline works perfectly!");
         response.put("version", "1.0.0");
         return response;
