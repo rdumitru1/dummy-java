@@ -41,6 +41,14 @@ jobs:
       - name: Run Unit Tests with Maven
         run: mvn clean package -DskipTests=false
 
+      - name: Upload Unit Test Reports
+        uses: actions/upload-artifact@v4
+        if: always() # Rulează și dacă testele pică, pentru a vedea de ce au crăpat!
+        with:
+          name: java-unit-test-reports
+          path: target/surefire-reports/
+          retention-days: 7
+
   docker-build-push:
     needs: test-and-build
     runs-on: ubuntu-latest
