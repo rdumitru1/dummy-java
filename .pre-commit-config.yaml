@@ -1,0 +1,37 @@
+---
+repos:
+  # Hook-uri generale pentru igiena codului
+  - repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: v6.0.0
+    hooks:
+      - id: trailing-whitespace
+      - id: end-of-file-fixer
+      - id: check-json
+      - id: check-toml
+      - id: check-merge-conflict
+      - id: detect-private-key
+      - id: mixed-line-ending
+        args: [--fix=lf]
+
+  # Scanare de bune practici și securitate pentru Kubernetes
+  - repo: https://github.com/stackrox/kube-linter
+    rev: v0.8.1
+    hooks:
+      - id: kube-linter
+
+  # Formatare automată pentru Terraform și Terragrunt
+  - repo: https://github.com/antonbabenko/pre-commit-terraform
+    rev: v1.105.0
+    hooks:
+      - id: terraform_fmt
+      - id: terragrunt_fmt
+
+  # Scanare avansată de securitate cu Checkov (Generează raportul SARIF)
+  - repo: https://github.com/bridgecrewio/checkov.git
+    rev: 3.2.497
+    hooks:
+      - id: checkov
+        args: [
+          "--output", "sarif",
+          "--output-file-path", ".github/output/results.sarif"
+        ]
